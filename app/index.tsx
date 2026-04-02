@@ -13,18 +13,19 @@ type Transaction = {
 
 export default function Index() {
     const [dialogVisible, setDialogVisible] = useState(false)
-    
     const [formAmount, setFormAmount] = useState("0")
     const [formDescription, setFormDescription] = useState("")
     const [formType, setFormType] = useState("out")
     const [transaction, setTransaction] = useState<Transaction[]>([])
-    
+    const [editId, setEditId] = useState<string | null>(null)
+
     const totalIn = transaction
     .filter((t) => t.type === "in")
     .reduce((sum, t) => sum + t.amount, 0);
     const totalOut = transaction
     .filter((t) => t.type === "out")
     .reduce((sum, t) => sum + t.amount, 0);
+    const balance = totalIn - totalOut;
 
     async function fetchData() {
         const { data, error } = await supabase
@@ -43,29 +44,52 @@ export default function Index() {
         fetchData()
     },[])
 
-    async function handleAddTransaction() {
-        if (!formAmount || !formDescription) {
-            Alert.alert("Error", "Jumlah dan Deskripsi harus diisi")
-            return
-        }
+async function handleAddTransaction() {
+    if (!formAmount || !formDescription) {
+        Alert.alert("Error", "Jumlah dan Deskripsi harus diisi")
+        return
+    }
 
-        const {error} = await supabase.from("transactions")
-        .insert({
-            amount: parseInt(formAmount),
-            description: formDescription,
-            type: formType,
-        })
+    const amount = parseInt(formAmount) || 0
 
-        if (error) {
-            Alert.alert("Error", "Gagal menambahkan transaksi")
-        }
+    let error = null
+
+    if (editId) {
+        // UPDATE
+        const res = await supabase
+            .from("transactions")
+            .update({
+                amount,
+                description: formDescription,
+                type: formType,
+            })
+            .eq("id", editId)
+
+        error = res.error
+    } else {
+        // INSERT
+        const res = await supabase
+            .from("transactions")
+            .insert({
+                amount,
+                description: formDescription,
+                type: formType,
+            })
+
+        error = res.error
+    }
+
+    if (error) {
+        Alert.alert("Error", "Gagal menyimpan transaksi")
+        return
+    }
 
     await fetchData()
     setDialogVisible(false)
     setFormAmount("0")
     setFormDescription("")
     setFormType("out")
-    
+    setEditId(null)
 }
 
     function formatCurrency(amount: number) {
@@ -105,6 +129,8 @@ export default function Index() {
         )
     }
 
+
+
     return (
         <View>
             <Appbar.Header>
@@ -116,7 +142,7 @@ export default function Index() {
                 <Card.Content>
                     <Text variant="labelSmall">Sisa Saldo</Text>
                     <Text variant="displaySmall" style={{ color: "green" }}>
-                        Rp 1.000.000 
+                        {formatCurrency(balance)}
                     </Text>
                     <Divider style={{ marginVertical: 12 }} />
                     <View style={{ flexDirection: "row", justifyContent: "space-between" }} 
@@ -124,13 +150,13 @@ export default function Index() {
                         <View style={{alignItems: "center"}} >
                             <Text variant="labelSmall">Pemasukan</Text>
                             <Text variant="titleSmall" style={{ color: "green" }} >
-                                Rp 1.500.000
+                                {formatCurrency(totalIn)}
                             </Text>
                         </View>
                         <View style={{alignItems: "center"}} >
                             <Text variant="labelSmall">Pengeluaran</Text>
                             <Text variant="titleSmall" style={{ color: "red" }} >
-                                Rp 500.000
+                                {formatCurrency(totalOut)}
                             </Text>
                         </View>
                     </View>
@@ -156,56 +182,68 @@ export default function Index() {
                 />
                 }
                 right={()=> (
-                    <View style={{ flexDirection: "row", alignItems: "center"}} >
-                        <Text variant="labelLarge" 
-                        style={{ color: item.type === "in" ? "green" : "red" }} >
-                            {item.type === "in" ? "+" : "-"} 
-                            {formatCurrency(item.amount)}
+                
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Text 
+                    variant="labelLarge" style={{ color: item.type === "in" ? "green" : "red" }}>
+                        {item.type === "in" ? "+" : "-"} 
+                        {formatCurrency(item.amount)}
                         </Text>
-                        <IconButton icon="delete-outline" onPress={()=> handleDeleteTransaction(item.id)}/>
-                    </View>
-                )}
-                />)}
-                />
-            </View>
+                        
+                        <IconButton icon="pencil" onPress={() => {
+                            setEditId(item.id)
+                            setFormAmount(item.amount.toString())
+                            setFormDescription(item.description)
+                            setFormType(item.type)
+                            setDialogVisible(true)
+                            }}/>
 
-            <Portal>
-                <Dialog visible={dialogVisible} onDismiss={()=> {setDialogVisible(false)}}>
-                    <Dialog.Title>Tambah Transaksi</Dialog.Title>
-                    <Dialog.Content>
-                        <SegmentedButtons
-                        style={{ marginBottom: 16 }}
-                        value={formType}
-                        onValueChange={(v) => {setFormType(v)}}
-                        buttons={[
-                            {value: "in", label: "Pemasukan", icon: "arrow-up-circle", },
-                            {value: "out", label: "Pengeluaran", icon: "arrow-down-circle", },
-                        ]}
-                        />
+                            <IconButton 
+                            icon="delete-outline" 
+                            onPress={() => handleDeleteTransaction(item.id)}/>
+                            </View>
+                            )}
+                            />)}
+                            />
+                            </View>
+                            
+                            <Portal>
+                                <Dialog visible={dialogVisible} onDismiss={()=> {setDialogVisible(false)}}>
+                                    <Dialog.Title>Tambah Transaksi</Dialog.Title>
+                                    <Dialog.Content>
+                                        <SegmentedButtons
+                                        style={{ marginBottom: 16 }}
+                                        value={formType}
+                                        onValueChange={(v) => {setFormType(v)}}
+                                        buttons={[
+                                            {value: "in", label: "Pemasukan", icon: "arrow-up-circle", },
+                                            {value: "out", label: "Pengeluaran", icon: "arrow-down-circle", },
+                                        ]}
+                                        />
 
-                        <TextInput 
-                        label={"Jumalah (Rp)"}
-                        keyboardType="numeric"
-                        value={formAmount}
-                        onChangeText={(v)=> {setFormAmount(v)}}
-                        mode="outlined"
-                        style={{ marginBottom: 16 }}
-                        />
+                                        <TextInput 
+                                        label={"Jumalah (Rp)"}
+                                        keyboardType="numeric"
+                                        value={formAmount}
+                                        onChangeText={(v)=> {setFormAmount(v)}}
+                                        mode="outlined"
+                                        style={{ marginBottom: 16 }}
+                                        />
 
-                        <TextInput 
-                        label={"Deskripsi"}
-                        value={formDescription}
-                        onChangeText={(v)=> {setFormDescription(v)}}
-                        mode="outlined"
-                        />
+                                        <TextInput 
+                                        label={"Deskripsi"}
+                                        value={formDescription}
+                                        onChangeText={(v)=> {setFormDescription(v)}}
+                                        mode="outlined"
+                                        />
 
-                    </Dialog.Content>
-                    <Dialog.Actions>
-                        <Button onPress={()=> {setDialogVisible(false)}}>Batal</Button>
-                        <Button onPress={()=> {handleAddTransaction(    )}}>Simpan</Button>
-                    </Dialog.Actions>
-                </Dialog>
-            </Portal>
-        </View>
-    )
-}
+                                    </Dialog.Content>
+                                    <Dialog.Actions>
+                                        <Button onPress={()=> {setDialogVisible(false)}}>Batal</Button>
+                                        <Button onPress={handleAddTransaction}>{editId ? "Update" : "Simpan"}</Button>
+                                    </Dialog.Actions>
+                                </Dialog>
+                            </Portal>
+                        </View>
+                    )
+                }
