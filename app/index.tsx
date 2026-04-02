@@ -58,8 +58,14 @@ export default function Index() {
     setFormAmount("0")
     setFormDescription("")
     setFormType("out")
-    
-}
+    }
+
+    function formatCurrency(amount: number) {
+        new Intl.NumberFormat("id-ID", {
+            style: "currency",
+            currency: "IDR"
+        }).format(amount);
+    }
 
     return (
         <View>
@@ -103,12 +109,13 @@ export default function Index() {
                 title={item.description}
                 description={new Date(item.created_at).toLocaleString 
                     ()}
-                left={(props) => <List.Icon icon={"arrow-up-circle"} 
-                color="red"/>}
+                left={(props) => <List.Icon icon={"arrow-up-circle"} color="red"/>}
                 right={()=> (
+
                     <View style={{ flexDirection: "row", alignItems: "center"}} >
-                        <Text variant="labelLarge" style={{ color: "red" }} >
-                            - Rp 50.000
+                        <Text variant="labelLarge" style={{ color: "red" }}>
+                            {item.type === "in" ? "+" : "-"} 
+                            {item.amount}
                         </Text>
                         <IconButton icon="delete-outline" onPress={()=> {}}/>
                     </View>
