@@ -61,7 +61,7 @@ export default function Index() {
     }
 
     function formatCurrency(amount: number) {
-        new Intl.NumberFormat("id-ID", {
+        return new Intl.NumberFormat("id-ID", {
             style: "currency",
             currency: "IDR"
         }).format(amount);
@@ -115,7 +115,7 @@ export default function Index() {
                     <View style={{ flexDirection: "row", alignItems: "center"}} >
                         <Text variant="labelLarge" style={{ color: "red" }}>
                             {item.type === "in" ? "+" : "-"} 
-                            {item.amount}
+                            {formatCurrency(item.amount)}
                         </Text>
                         <IconButton icon="delete-outline" onPress={()=> {}}/>
                     </View>
