@@ -18,6 +18,13 @@ export default function Index() {
     const [formDescription, setFormDescription] = useState("")
     const [formType, setFormType] = useState("out")
     const [transaction, setTransaction] = useState<Transaction[]>([])
+    
+    const totalIn = transaction
+    .filter((t) => t.type === "in")
+    .reduce((sum, t) => sum + t.amount, 0);
+    const totalOut = transaction
+    .filter((t) => t.type === "out")
+    .reduce((sum, t) => sum + t.amount, 0);
 
     async function fetchData() {
         const { data, error } = await supabase
@@ -38,7 +45,7 @@ export default function Index() {
 
     async function handleAddTransaction() {
         if (!formAmount || !formDescription) {
-            Alert.alert("Error", "Jumlah da Deskripsi harus diisi")
+            Alert.alert("Error", "Jumlah dan Deskripsi harus diisi")
             return
         }
 
@@ -138,7 +145,7 @@ export default function Index() {
                 renderItem={({item})=> (
                 <List.Item
                 title={item.description}
-                description={new Date(item.created_at).toLocaleString}
+                description={new Date(item.created_at).toLocaleString()}
                 left={(props) => 
                 <List.Icon
                 icon={
@@ -155,9 +162,7 @@ export default function Index() {
                             {item.type === "in" ? "+" : "-"} 
                             {formatCurrency(item.amount)}
                         </Text>
-                        <IconButton icon="delete-outline" onPress={()=> {
-                            handleDeleteTransaction(item.id);
-                        }}/>
+                        <IconButton icon="delete-outline" onPress={()=> handleDeleteTransaction(item.id)}/>
                     </View>
                 )}
                 />)}
