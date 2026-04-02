@@ -21,7 +21,7 @@ export default function Index() {
 
     async function fetchData() {
         const { data, error } = await supabase
-        .from("transcations")
+        .from("transactions")
         .select("*")
         .order("created_at", {ascending: false})
 
@@ -61,15 +61,42 @@ export default function Index() {
     
 }
 
-    async function formatCurrency(amount: number) {
+    function formatCurrency(amount: number) {
         return new Intl.NumberFormat("id-ID", {
             style: "currency",
             currency: "IDR",
         }).format(amount)
     }
 
-    
+    async function handleDeleteTransaction(id: string) {
+        Alert.alert(
+            "Konfirmasi",
+            "Apakah Anda yakin ingin menghapus transaksi ini?",
+            [
+                {
+                    text: "Batal",
+                    style: "cancel",
+                },
+                {
+                    text: "Hapus",
+                    style: "destructive",
+                    onPress: async () => {
+                        const  { error } = await supabase
+                        .from("transactions")
+                        .delete()
+                        .eq("id", id)
 
+                        if (error) {
+                            Alert.alert("Error", "Gagal menghapus transaksi")
+                        } else {
+                            fetchData()
+                        }
+                    }
+                }
+                
+            ]
+        )
+    }
 
     return (
         <View>
@@ -128,7 +155,9 @@ export default function Index() {
                             {item.type === "in" ? "+" : "-"} 
                             {formatCurrency(item.amount)}
                         </Text>
-                        <IconButton icon="delete-outline" onPress={()=> {}}/>
+                        <IconButton icon="delete-outline" onPress={()=> {
+                            handleDeleteTransaction(item.id);
+                        }}/>
                     </View>
                 )}
                 />)}
