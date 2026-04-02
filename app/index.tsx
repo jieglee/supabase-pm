@@ -21,7 +21,7 @@ export default function Index() {
 
     async function fetchData() {
         const { data, error } = await supabase
-        .from("transcation")
+        .from("transcations")
         .select("*")
         .order("created_at", {ascending: false})
 
@@ -58,14 +58,18 @@ export default function Index() {
     setFormAmount("0")
     setFormDescription("")
     setFormType("out")
-    }
+    
+}
 
-    function formatCurrency(amount: number) {
+    async function formatCurrency(amount: number) {
         return new Intl.NumberFormat("id-ID", {
             style: "currency",
-            currency: "IDR"
-        }).format(amount);
+            currency: "IDR",
+        }).format(amount)
     }
+
+    
+
 
     return (
         <View>
@@ -104,16 +108,23 @@ export default function Index() {
                 <FlatList
                 data={transaction}
                 keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (  
+                renderItem={({item})=> (
                 <List.Item
                 title={item.description}
-                description={new Date(item.created_at).toLocaleString 
-                    ()}
-                left={(props) => <List.Icon icon={"arrow-up-circle"} color="red"/>}
+                description={new Date(item.created_at).toLocaleString}
+                left={(props) => 
+                <List.Icon
+                icon={
+                    item.type === "in" ? "arrow-up-circle" :
+                    "arrow-down-circle"
+                } 
+                color={item.type === "in" ? "green" : "red"}
+                />
+                }
                 right={()=> (
-
                     <View style={{ flexDirection: "row", alignItems: "center"}} >
-                        <Text variant="labelLarge" style={{ color: "red" }}>
+                        <Text variant="labelLarge" 
+                        style={{ color: item.type === "in" ? "green" : "red" }} >
                             {item.type === "in" ? "+" : "-"} 
                             {formatCurrency(item.amount)}
                         </Text>
